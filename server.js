@@ -81,7 +81,10 @@ async function connectToWhatsApp() {
       if (msg.key.fromMe || msg.key.remoteJid === 'status@broadcast') continue;
 
       const remoteJid = msg.key.remoteJid;
-      const senderNumber = remoteJid.replace('@s.whatsapp.net', '');
+      // Simpan JID asli lengkap (bisa @s.whatsapp.net atau @lid)
+      const senderJid = remoteJid;
+      // Nomor tampilan
+      const senderNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@lid', '');
       const pushName = msg.pushName || 'Pengguna WA';
 
       // Ekstrak teks pesan
@@ -96,7 +99,7 @@ async function connectToWhatsApp() {
 
       if (!messageText) continue;
 
-      console.log(`[WA Masuk] Dari: ${senderNumber} (${pushName}): ${messageText}`);
+      console.log(`[WA Masuk] Dari: ${senderNumber} (JID: ${senderJid}): ${messageText}`);
 
       // Kirim ke Webhook cPanel jika WEBHOOK_URL terkonfigurasi
       if (WEBHOOK_URL) {
@@ -104,6 +107,7 @@ async function connectToWhatsApp() {
           const payload = {
             secret: API_SECRET,
             from: senderNumber,
+            from_jid: senderJid, // Kirim JID asli
             name: pushName,
             message: messageText,
             timestamp: msg.messageTimestamp,
@@ -205,12 +209,14 @@ app.post('/send-message', async (req, res) => {
   }
 
   try {
-    // Normalisasi nomor tujuan ke format JID WhatsApp
-    let cleanNumber = to.replace(/[^0-9]/g, '');
-    if (cleanNumber.startsWith('0')) {
-      cleanNumber = '62' + cleanNumber.substring(1);
+    let jid = to;
+    if (!jid.includes('@')) {
+      let cleanNumber = to.replace(/[^0-9]/g, '');
+      if (cleanNumber.startsWith('0')) {
+        cleanNumber = '62' + cleanNumber.substring(1);
+      }
+      jid = `${cleanNumber}@s.whatsapp.net`;
     }
-    const jid = `${cleanNumber}@s.whatsapp.net`;
 
     const sent = await sock.sendMessage(jid, { text: message });
     return res.json({ success: true, messageId: sent.key.id });
