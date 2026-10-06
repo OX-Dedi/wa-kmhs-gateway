@@ -1,0 +1,4 @@
+# Sesi autentikasi WhatsApp Baileys (tidak boleh di-commit ke Git publik)
+auth_info/
+node_modules/
+.env
